@@ -1,7 +1,7 @@
 * System equates
  
 stack            EQU      $A000
-example          EQU      %0000000001100001    * I made up bits 0 to 11      
+example          EQU      %0000000000000001    * I made up bits 0 to 11      
 shift            EQU     12                   * Shift 12 bits 
  
 * Program starts here
@@ -38,9 +38,9 @@ jmp_table1      JMP         code0000
                JMP         code1111
         
  
-*The following subroutines will get filled in as you decode the instructions . For *now, just exit gracefully.
  
 ;DECODE LAYER 1 start
+
 ;first 4 bit decoding layer 1
 ;ORI,BCLR
 code0000    CLR.L   D2              *Zero it
@@ -68,8 +68,6 @@ code0100    CLR.L   D2              *Zero it
             MULU    #6,D2       *index into the table
             LEA     jmp_table0100,A0
             JSR     0(A0,D2)
-*
-       
     STOP        #$2700
 code0101       STOP        #$2700
 ;Bcc
@@ -100,6 +98,7 @@ code1111       STOP        #$2700
  
  
 ;2ND LAYER
+
 ;2ndlayer jmp table for opcodes with the first 4 bits = 0000
 jmp_table0000  JMP         code00000000
                JMP         code00000001
@@ -119,8 +118,33 @@ jmp_table0000  JMP         code00000000
                JMP         code00001111
 
 ;first 8 bit decoding for first four bits starting with 0000
-;ORI if the size field is 00 or 01 or 10
-code00000000       STOP        #$2700
+;ORI
+code00000000       
+    CLR.L   D2              *Zero it
+            MOVE.W  #example,D2     *We'll play with it here
+            MOVE.B  #8,D3       *Shift 8 bits to the left to get rid of the first 8 bits we already decoded  
+            LSL.W   D3,D2           *Move the bits
+            MOVE.B  #14,D3      *shift 14 bits to the right to pick out the next 2 after the 8 bits already decoded
+            LSR.W   D3,D2           *Move the bits            
+            MULU    #6,D2       *index into the table
+            LEA     jmp_tableLpSize,A0
+            JSR     0(A0,D2)
+            ;check if decoded valid size
+            ;if valid size and valid size != Long the next word contains the immediate value for the source
+            ;decode mode
+            MOVE.W  #example,D2     *We'll play with it here
+            MOVE.B  #10,D3       *Shift 10 bits to the left to get rid of the first 10 bits we already decoded  
+            LSL.W   D3,D2           *Move the bits
+            MOVE.B  #13,D3      *shift 14 bits to the right to pick out the next 3 after the 10 bits already decoded
+            LSR.W   D3,D2           *Move the bits            
+            MULU    #6,D2       *index into the table
+            LEA     jmp_tableMode,A0
+            JSR     0(A0,D2)
+            ;check mode
+            ;and xn
+            ;if mode is immediate and size != long the next word contains the immediate address for the destination
+            
+    STOP        #$2700
 ;BCLR   Dn = 000
 code00000001       STOP        #$2700
 code00000010       STOP        #$2700
@@ -219,7 +243,61 @@ code11011100       STOP        #$2700
 code11011101       STOP        #$2700
 code11011110       STOP        #$2700
 code11011111       STOP        #$2700
+
+
+;Light Purple Size Decoding
+jmp_tableLpSize  JMP         codexxxxxxxx00
+               JMP         codexxxxxxxx01
+               JMP         codexxxxxxxx10
+               JMP         codexxxxxxxx11                
+;SIZE ROUTINES
+; .B
+codexxxxxxxx00  MOVE.W  byte,A2
+    RTS
+; .W
+codexxxxxxxx01  STOP        #$2700
+; .L
+codexxxxxxxx10  STOP        #$2700
+; INVALID SIZE this must be data
+codexxxxxxxx11  STOP        #$2700
+
+;Mode Decoding
+jmp_tableMode  JMP         mode000
+               JMP         mode001
+               JMP         mode010
+               JMP         mode011
+               JMP         mode100
+               JMP         mode101
+               JMP         mode110
+               JMP         mode111                
+;Mode Routines 
+;Data register
+mode000 STOP        #$2700
+;address register
+mode001 STOP        #$2700
+; address (An)
+mode010 STOP        #$2700
+; Address with postincrement (An)+
+mode011 STOP        #$2700
+;Address with predecrement -(An)
+mode100 STOP        #$2700
+;Address with displaceemnt (d16,An)
+mode101 STOP        #$2700
+;Address with index (d8,An,Xn)
+mode110 STOP        #$2700
+; the rest
+mode111 STOP        #$2700
+
+;requires d6 to cointain the 6 bits that will be used to do the addressing mode
+decodeModeAndAddress    NOP
+              CLR.L     D2
+              MOVE.B    D6,D2
+              
+byte    DC.B    '.B',0
+DR      DC.B    'DR',0
+AR      DC.B    'AR',0
                END   $400 
+
 
 
 *~Font name~Courier New~
