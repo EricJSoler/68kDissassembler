@@ -175,187 +175,185 @@ MOVEBDone           MOVE.B  #0,(A6)+
                     
                     
 ;decode subroutine for ADDx.... 
-decodeADDx  NOP
-    CLR.L   D2
-    MOVE.W  #example,D2
-    ;Decode the size
-    MOVE.B  #8,D3
-    LSL.W   D3,D2
-    MOVE.B  #14,D3
-    LSR.W   D3,D2
-    MOVE.W  D2,D3
+decodeADDx          NOP
+                    CLR.L   D2
+                    MOVE.W  #example,D2
+        ;Decode the size
+                    MOVE.B  #8,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #14,D3
+                    LSR.W   D3,D2
+                    MOVE.W  D2,D3
     ;check if decoded valid size
-            SUB.B   #%10,D2
-            BGT     ADDwasData
+                    SUB.B   #%10,D2
+                    BGT     ADDwasData
             ;write the .x to the instruction depending on size
-            MOVE.B  #46,(A6)+
-            MOVE.B  D3,D2
-            BSR addlpsize ; jump to the sub routine that will add the .x to the isntruction
+                    MOVE.B  #46,(A6)+
+                    MOVE.B  D3,D2
+                    BSR addlpsize ; jump to the sub routine that will add the .x to the isntruction
      ;assuming we decoded a valid size we need to check if the addressing mode is also valid for the given size
             
      ;check which direction we are moving the data 
-            MOVE.W  #example,D2
-            MOVE.B  #7,D3
-            LSL.W   D3,D2
-            MOVE.B  #15,D3
-            LSR.W   D3,D2
-            BEQ     addeatodn
+                    MOVE.W  #example,D2
+                    MOVE.B  #7,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #15,D3
+                    LSR.W   D3,D2
+                    BEQ     addeatodn
             
             
-            BRA AddeaDone
-Addeatodn   MOVE.W  #example,D2
-            MOVE.B  #12,D3
-            LSL.W   D3,D2
-            MOVE.B  #12,D3
-            LSR.W   D3,D2
-            MOVE.B  D2,D6
-            BSR decodeModeAndAddress
-            ;check mode
-            CMP.B   #0,D6
-            BEQ ADDwasData
-            MOVE.B  #44,(A6)+ ;add comma
-            ;decode Dn and add it to the isntruction
-            MOVE.W  #example,D2
-            MOVE.B  #4,D3
-            LSL.W   D3,D2
-            MOVE.B  #13,D3
-            LSR.W   D3,D2
-            MOVE.B  #68,(A6)+
-            ADD.B   #48,D2
-            MOVE.B  D2,(A6)+
+                    BRA AddeaDone
+Addeatodn           MOVE.W  #example,D2
+                    MOVE.B  #12,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #12,D3
+                    LSR.W   D3,D2
+                    MOVE.B  D2,D6
+                    BSR decodeModeAndAddress
+                    ;check mode
+                    CMP.B   #0,D6
+                    BEQ ADDwasData
+                    MOVE.B  #44,(A6)+ ;add comma
+                    ;decode Dn and add it to the isntruction
+                    MOVE.W  #example,D2
+                    MOVE.B  #4,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    MOVE.B  #68,(A6)+
+                    ADD.B   #48,D2
+                    MOVE.B  D2,(A6)+
             
-AddeaDone   NOP
+AddeaDone           NOP
 
-            BRA Adddone
-ADDwasData  LEA data,A6
-AddDone     MOVE.B  #0,(A6)+
-            MOVE.L  #14,D0
-            LEA inst,A1
-            TRAP    #15           
-            RTS
+                    BRA Adddone
+ADDwasData          LEA data,A6
+AddDone             MOVE.B  #0,(A6)+
+                    MOVE.L  #14,D0
+                    LEA inst,A1
+                    TRAP    #15           
+                    RTS
     
 ;Decode subroutine for ADDA
-decodeADDA  MOVE.B  #65,(A6)+
-    CLR.L   D2
-    MOVE.W  #example,D2
+decodeADDA          MOVE.B  #65,(A6)+
+                    CLR.L   D2
+                    MOVE.W  #example,D2
     
     ;decode the size in the 8th bit
-    MOVE.B #7,D3
-    LSL.W   D3,D2
-    MOVE.B  #15,D3
-    LSR.W   D3,D2   *isolate the size bit
-    BSR     addmedpsize
-    MOVE.B #32,(A6)+ ;addspace after size
+                    MOVE.B #7,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #15,D3
+                    LSR.W   D3,D2   *isolate the size bit
+                    BSR     addmedpsize
+                    MOVE.B #32,(A6)+ ;addspace after size
     ;decode the destination and its mode
-    MOVE.W  #example,D2
-    MOVE.B  #10,D3
-    LSL.W   D3,D2
-    MOVE.B  #10,D3
-    LSR.W   D3,D2
-    MOVE.B  D2,D6
-    BSR decodeModeAndAddress
+                    MOVE.W  #example,D2
+                    MOVE.B  #10,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #10,D3
+                    LSR.W   D3,D2
+                    MOVE.B  D2,D6
+                    BSR decodeModeAndAddress
     ;check mode
-    CMP.B   #0,D6
-    BEQ addAwasData
-    MOVE.B  #44,(A6)+ ;add comma
+                    CMP.B   #0,D6
+                    BEQ addAwasData
+                    MOVE.B  #44,(A6)+ ;add comma
     ;check mode
-    CMP.B   #0,D6
-    BEQ addAwasData    
+                    CMP.B   #0,D6
+                    BEQ addAwasData    
     ;Decode the destination address register 
-    MOVE.W  #example,D2
-    MOVE.B  #4,D3
-    LSL.W   D3,D2 ;isolate the address register bits
-    MOVE.B  #13,D3
-    LSR.W   D3,D2   ;move the address register bits into their column
-    ADD.B   #48,D2  ;get the address register   in ascii
-    MOVE.B  #65,(A6)+
-    MOVE.B  D2,(A6)+
-   
-    
-    BRA addAdone
-addAwasData  LEA data,A6
-addAdone     MOVE.B  #0,(A6)+
-            MOVE.L  #14,D0
-            LEA inst,A1
-            TRAP    #15           
-            RTS
-            
-;2ND LAYER
+                    MOVE.W  #example,D2
+                    MOVE.B  #4,D3
+                    LSL.W   D3,D2 ;isolate the address register bits
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2   ;move the address register bits into their column
+                    ADD.B   #48,D2  ;get the address register   in ascii
+                    MOVE.B  #65,(A6)+
+                    MOVE.B  D2,(A6)+
+  
+                    BRA addAdone
+addAwasData         LEA data,A6
+addAdone            MOVE.B  #0,(A6)+
+                    MOVE.L  #14,D0
+                    LEA inst,A1
+                    TRAP    #15           
+                    RTS           
 
+ 
+;2ND LAYER
 ;2ndlayer jmp table for opcodes with the first 4 bits = 0000
-jmp_table0000  JMP         code00000000
-               JMP         code00000001
-               JMP         code00000010
-               JMP         code00000011
-               JMP         code00000100
-               JMP         code00000101
-               JMP         code00000110
-               JMP         code00000111
-               JMP         code00001000
-               JMP         code00001001
-               JMP         code00001010
-               JMP         code00001011
-               JMP         code00001100
-               JMP         code00001101
-               JMP         code00001110
-               JMP         code00001111
+jmp_table0000       JMP         code00000000
+                    JMP         code00000001
+                    JMP         code00000010
+                    JMP         code00000011
+                    JMP         code00000100
+                    JMP         code00000101
+                    JMP         code00000110
+                    JMP         code00000111
+                    JMP         code00001000
+                    JMP         code00001001
+                    JMP         code00001010
+                    JMP         code00001011
+                    JMP         code00001100
+                    JMP         code00001101
+                    JMP         code00001110
+                    JMP         code00001111
 
 ;first 8 bit decoding for first four bits starting with 0000
 ;ORI
 code00000000       
     ;Write ORI into current instruction string
-    ;
-    MOVE.B  #79,(A6)+
-    MOVE.B  #82,(A6)+
-    MOVE.B  #73,(A6)+
+                    MOVE.B  #79,(A6)+
+                    MOVE.B  #82,(A6)+
+                    MOVE.B  #73,(A6)+
     
-    ;decode size
-    CLR.L   D2              *Zero it
-            MOVE.W  #example,D2     *We'll play with it here
-            MOVE.B  #8,D3       *Shift 8 bits to the left to get rid of the first 8 bits we already decoded  
-            LSL.W   D3,D2           *Move the bits
-            MOVE.B  #14,D3      *shift 14 bits to the right to pick out the next 2 after the 8 bits already decoded
-            LSR.W   D3,D2           *Move the bits            
-            MOVE.B  D2,D3 ;make a copy of D2 in D3
+     ;decode size
+                    CLR.L   D2              *Zero it
+                    MOVE.W  #example,D2     *We'll play with it here
+                    MOVE.B  #8,D3       *Shift 8 bits to the left to get rid of the first 8 bits we already decoded  
+                    LSL.W   D3,D2           *Move the bits
+                    MOVE.B  #14,D3      *shift 14 bits to the right to pick out the next 2 after the 8 bits already decoded
+                    LSR.W   D3,D2           *Move the bits            
+                    MOVE.B  D2,D3 ;make a copy of D2 in D3
             ;check if decoded valid size
-            SUB.B   #%10,D2
-            BGT     oriwasData
+                    SUB.B   #%10,D2
+                    BGT     oriwasData
             ;write the .x to the instruction depending on size
-            MOVE.B  #46,(A6)+
-            MOVE.B  D3,D2
-            BSR addlpsize ; jump to the sub routine that will add the .x to the isntruction
+                    MOVE.B  #46,(A6)+
+                    MOVE.B  D3,D2
+                    BSR addlpsize ; jump to the sub routine that will add the .x to the isntruction
 
             ;if valid size and valid size != Long the next word contains the immediate value for the source
-            SUB.B   #%01,D2 ;check if we are gonna pull the next word or next long
-            BGT     oritakelong
-            BRA     oritakeword
-oritakelong NOP ;take next long and add it to the string as the source
-            BRA oritookim
-oritakeword NOP ;take next word and add it to the string as the source
-oritookim   NOP ;branch to skip taking a word           
+                    SUB.B   #%01,D2 ;check if we are gonna pull the next word or next long
+                    BGT     oritakelong
+                    BRA     oritakeword                    
+oritakelong         NOP ;take next long and add it to the string as the source
+                    BRA oritookim
+oritakeword         NOP ;take next word and add it to the string as the source
+oritookim           NOP ;branch to skip taking a word           
             ;decode mode and load this operands string
-            MOVE.W  #example,D2     *We'll play with it here
-            MOVE.B  #10,D3       *Shift 10 bits to the left to get rid of the first 10 bits we already decoded  
-            LSL.W   D3,D2           *Move the bits
-            MOVE.B  #10,D3      *shift 10 bits to the right to pick out the next 6 bits for the mode and destination
-            LSR.W   D3,D2           *Move the bits            
+                    MOVE.W  #example,D2     *We'll play with it here
+                    MOVE.B  #10,D3       *Shift 10 bits to the left to get rid of the first 10 bits we already decoded  
+                    LSL.W   D3,D2           *Move the bits
+                    MOVE.B  #10,D3      *shift 10 bits to the right to pick out the next 6 bits for the mode and destination
+                    LSR.W   D3,D2           *Move the bits            
 
             ;the sub rountine in the mode table will build a string and store it in A5 when passed 6 bits int D6that is (M)(XN) will set D6 to 1 if valid and D6 to 0 if invalid
-            MOVE.B D2,D6
-            BSR decodeModeAndAddress
+                    MOVE.B D2,D6
+                    BSR decodeModeAndAddress
             ;check mode
-            CMP.B   #0,D6
-            BEQ oriwasData
+                    CMP.B   #0,D6
+                    BEQ oriwasData
             
             ;and xn
             ;if mode is immediate and size != long the next word contains the immediate address for the destination
-            BRA oridone
-oriwasData  LEA data,A6
-oridone     MOVE.B  #0,(A6)+
-    MOVE.L  #14,D0
-    LEA inst,A1
-    TRAP    #15           
-        RTS
+                    BRA oridone
+oriwasData          LEA data,A6
+oridone             MOVE.B  #0,(A6)+
+                    MOVE.L  #14,D0
+                    LEA inst,A1
+                    TRAP    #15           
+                    RTS
             
 ;BCLR   Dn = 000
 code00000001       STOP        #$2700
@@ -373,13 +371,14 @@ code00001000       STOP        #$2700
 code00001001       STOP        #$2700
 code00001010       STOP        #$2700
 ;BCLR   DN = 101
-code00001011     BRA        code1011
-code00001100       STOP        #$2700
+code00001011        BRA        code1011
+code00001100        STOP        #$2700
 ;BCLR   DN = 110
 code00001101       STOP        #$2700
 code00001110       STOP        #$2700
 ;BCLR   DN = 111
 code00001111       STOP        #$2700
+               
                
 ;2ndlayer jmp table for opcodes with the first 4 bits = 0100
 jmp_table0100  JMP         code01000000
