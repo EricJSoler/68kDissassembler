@@ -3,7 +3,7 @@
 stack            EQU      $A000
 inst             EQU      $5000
 operand          EQU      $6000
-example          EQU      %0000000000000001    * I made up bits 0 to 11     
+example          EQU      %1101001011000010    * I made up bits 0 to 11     
 nextword         EQU      1 
 shift            EQU     12                   * Shift 12 bits 
  
@@ -18,9 +18,6 @@ start            LEA     stack,SP        *Load the SP
                  MOVE.W  #example,D2     *We'll play with it here
                  MOVE.B  #shift,D3       *Shift 12 bits to the right  
                  LSR.W   D3,D2           *Move the bits
-*
-
- 
                MULU        #6,D2       *Form offset     
                JSR          0(A0,D2)   *Jump indirect with index
                     
@@ -56,6 +53,7 @@ code0000    CLR.L   D2              *Zero it
             MULU    #6,D2       *index into the table
             LEA     jmp_table0000,A0
             JSR     0(A0,D2)
+            RTS
 ;MOVE.B
 code0001       STOP        #$2700
 ;MOVE.L, MOVEA.L
@@ -72,7 +70,7 @@ code0100    CLR.L   D2              *Zero it
             MULU    #6,D2       *index into the table
             LEA     jmp_table0100,A0
             JSR     0(A0,D2)
-    STOP        #$2700
+    RTS
 code0101       STOP        #$2700
 ;Bcc
 code0110       STOP        #$2700
@@ -87,20 +85,72 @@ code1011     BRA        code1011
 ;MULS
 code1100       STOP        #$2700
 ;ADD,ADDX,ADDA
-code1101    CLR.L   D2              *Zero it
+code1101    
+            MOVE.B  #65,(A6)+
+            MOVE.B  #68,(A6)+
+            MOVE.B  #68,(A6)+
+            CLR.L   D2              *Zero it
             MOVE.W  #example,D2     *We'll play with it here
-            MOVE.B  #4,D3       *Shift 4 bits to the left to get rid of the first 4 bits we already decoded  
+            ;check the 9th and 10th bit to see if its ADDA or just ADD
+            MOVE.B  #8,D3       *Shift 8 bits to the left to isolate 
+            ;check the 9th and 10th bit to see if its ADDA or just ADD
             LSL.W   D3,D2           *Move the bits
-            MOVE.B  #12,D3      *shift 12 bits to the right to pick out the second 4 bits
+            MOVE.B  #14,D3      *shift 14 bits to the right to pick out the 9th and 10th bits
             LSR.W   D3,D2           *Move the bits            
-            MULU    #6,D2       *index into the table
-            LEA     jmp_table1101,A0
-            JSR     0(A0,D2)
+            CMP #%11,D2 ; if they are equal then we know that it is an ADDa
+            BEQ choseAdda
+            ;decode ADDX
+            BRA choseADDx
+choseAddA   BSR decodeADDA
+choseADDx   NOP            
+    RTS
 ;ASd,LSd,ROd
 code1110       STOP        #$2700
 code1111       STOP        #$2700
  
- 
+;Decode subroutine for ADDA
+decodeADDA  MOVE.B  #65,(A6)+
+    CLR.L   D2
+    MOVE.W  #example,D2
+    
+    ;decode the size in the 8th bit
+    MOVE.B #7,D3
+    LSL.W   D3,D2
+    MOVE.B  #15,D3
+    LSR.W   D3,D2   *isolate the size bit
+    BSR     addmedpsize
+    MOVE.B #32,(A6)+ ;addspace after size
+    ;decode the destination and its mode
+    MOVE.W  #example,D2
+    MOVE.B  #10,D3
+    LSL.W   D3,D2
+    MOVE.B  #10,D3
+    LSR.W   D3,D2
+    MOVE.B  D2,D6
+    BSR decodeModeAndAddress
+    MOVE.B  #44,(A6)+ ;add comma
+    ;check mode
+    CMP.B   #0,D6
+    BEQ addwasData    
+    ;Decode the destination address register 
+    MOVE.W  #example,D2
+    MOVE.B  #4,D3
+    LSL.W   D3,D2 ;isolate the address register bits
+    MOVE.B  #13,D3
+    LSR.W   D3,D2   ;move the address register bits into their column
+    ADD.B   #48,D2  ;get the address register   in ascii
+    MOVE.B  #65,(A6)+
+    MOVE.B  D2,(A6)+
+   
+    
+    BRA adddone
+addwasData  LEA data,A6
+adddone     MOVE.B  #0,(A6)+
+            MOVE.L  #14,D0
+            LEA inst,A1
+            TRAP    #15           
+            RTS
+            
 ;2ND LAYER
 
 ;2ndlayer jmp table for opcodes with the first 4 bits = 0000
@@ -378,12 +428,24 @@ lpW        MOVE.B  #87,(A6)+
 lpL        MOVE.B  #76,(A6)+
 lpDone  MOVE.B  #32,(A6)+
     RTS
-              
+
+;requires d2 to contain the 1 bit that will be the dark purple size will not make changes to d2 will add the .x to the instruction string in A6
+addmedpsize NOP              
+    MOVE.B  #46,(A6)+
+    CMP #0,D2
+    BEQ dpsizew
+    MOVE.B  #76,(A6)+
+    BRA dpsizedone
+dpsizeW MOVE.B  #87,(A6)+
+dpsizedone RTS
+
+
 byte    DC.B    '.B',0
 DR      DC.B    'DR',0
 AR      DC.B    'AR',0
 data    DC.B    'DATA',0
                END   $400 
+
 
 
 
