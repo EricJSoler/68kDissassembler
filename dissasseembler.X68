@@ -1,9 +1,9 @@
-* System equates
+ * System equates
  
 stack            EQU      $A000
 inst             EQU      $5000
 operand          EQU      $6000
-example          EQU      %1101001011000010    * I made up bits 0 to 11     
+example          EQU      %0001000000000001    
 nextword         EQU      1 
 shift            EQU     12                   * Shift 12 bits 
  
@@ -12,102 +12,228 @@ shift            EQU     12                   * Shift 12 bits
                  ORG     $400
 start            LEA     stack,SP        *Load the SP
                  LEA    inst,A6
-                 ;MOVE.B #00,-(A6)   ;null terminated string for current instruction string
                  LEA     jmp_table1,A0    *Index into the table
                  CLR.L   D2              *Zero it
                  MOVE.W  #example,D2     *We'll play with it here
                  MOVE.B  #shift,D3       *Shift 12 bits to the right  
                  LSR.W   D3,D2           *Move the bits
-               MULU        #6,D2       *Form offset     
-               JSR          0(A0,D2)   *Jump indirect with index
+                 MULU        #6,D2       *Form offset     
+                 JSR          0(A0,D2)   *Jump indirect with index
+finishedoneinst  STOP    #$2700
+                    
                     
 jmp_table1      JMP         code0000
-               JMP         code0001
-               JMP         code0010
-               JMP         code0011
-               JMP         code0100
-               JMP         code0101
-               JMP         code0110
-               JMP         code0111
-               JMP         code1000
-               JMP         code1001
-               JMP         code1010
-               JMP         code1011
-               JMP         code1100
-               JMP         code1101
-               JMP         code1110
-               JMP         code1111
-        
+                JMP         code0001
+                JMP         code0010
+                JMP         code0011
+                JMP         code0100
+                JMP         code0101
+                JMP         code0110
+                JMP         code0111
+                JMP         code1000
+                JMP         code1001
+                JMP         code1010
+                JMP         code1011
+                JMP         code1100
+                JMP         code1101
+                JMP         code1110
+                JMP         code1111
  
  
 ;DECODE LAYER 1 start
-    
 ;first 4 bit decoding layer 1
 ;ORI,BCLR
-code0000    CLR.L   D2              *Zero it
-            MOVE.W  #example,D2     *We'll play with it here
-            MOVE.B  #4,D3       *Shift 4 bits to the left to get rid of the first 4 bits we already decoded  
-            LSL.W   D3,D2           *Move the bits
-            MOVE.B  #12,D3      *shift 12 bits to the right to pick out the second 4 bits
-            LSR.W   D3,D2           *Move the bits            
-            MULU    #6,D2       *index into the table
-            LEA     jmp_table0000,A0
-            JSR     0(A0,D2)
-            RTS
-;MOVE.B
-code0001       STOP        #$2700
+code0000        CLR.L   D2              *Zero it
+                MOVE.W  #example,D2     *We'll play with it here
+                MOVE.B  #4,D3       *Shift 4 bits to the left to get rid of the first 4 bits we already decoded  
+                LSL.W   D3,D2           *Move the bits
+                MOVE.B  #12,D3      *shift 12 bits to the right to pick out the second 4 bits
+                LSR.W   D3,D2           *Move the bits            
+                MULU    #6,D2       *index into the table
+                LEA     jmp_table0000,A0
+                JSR     0(A0,D2)
+                JMP finishedoneinst
+;MOVE.B; MOVEA.B
+code0001        BSR decodeMOVEBMOVEA
+                JMP finishedoneinst
 ;MOVE.L, MOVEA.L
-code0010       STOP        #$2700
+code0010        STOP        #$2700
 ;MOVE.W,MOVEA.W
-code0011       STOP        #$2700
+code0011        STOP        #$2700
 ;NEG,MOVEM,LEA
-code0100    CLR.L   D2              *Zero it
-            MOVE.W  #example,D2     *We'll play with it here
-            MOVE.B  #4,D3       *Shift 4 bits to the left to get rid of the first 4 bits we already decoded  
-            LSL.W   D3,D2           *Move the bits
-            MOVE.B  #12,D3      *shift 12 bits to the right to pick out the second 4 bits
-            LSR.W   D3,D2           *Move the bits            
-            MULU    #6,D2       *index into the table
-            LEA     jmp_table0100,A0
-            JSR     0(A0,D2)
-    RTS
-code0101       STOP        #$2700
+code0100        CLR.L   D2              *Zero it
+                MOVE.W  #example,D2     *We'll play with it here
+                MOVE.B  #4,D3       *Shift 4 bits to the left to get rid of the first 4 bits we already decoded  
+                LSL.W   D3,D2           *Move the bits
+                MOVE.B  #12,D3      *shift 12 bits to the right to pick out the second 4 bits
+                LSR.W   D3,D2           *Move the bits            
+                MULU    #6,D2       *index into the table
+                LEA     jmp_table0100,A0
+                JSR     0(A0,D2)
+                RTS
+code0101        STOP        #$2700
 ;Bcc
-code0110       STOP        #$2700
-code0111       STOP        #$2700
+code0110        STOP        #$2700
+code0111        STOP        #$2700
 ;DIVS.W ,OR
-code1000       STOP        #$2700
+code1000        STOP        #$2700
 ;SUB
-code1001       STOP        #$2700
-code1010       STOP        #$2700
+code1001        STOP        #$2700
+code1010        STOP        #$2700
 ;EOR,CMP
-code1011     BRA        code1011
+code1011        BRA        code1011
 ;MULS
-code1100       STOP        #$2700
+code1100        STOP        #$2700
 ;ADD,ADDX,ADDA
 code1101    
-            MOVE.B  #65,(A6)+
-            MOVE.B  #68,(A6)+
-            MOVE.B  #68,(A6)+
-            CLR.L   D2              *Zero it
-            MOVE.W  #example,D2     *We'll play with it here
+                MOVE.B  #65,(A6)+
+                MOVE.B  #68,(A6)+
+                MOVE.B  #68,(A6)+
+                CLR.L   D2              *Zero it
+                MOVE.W  #example,D2     *We'll play with it here
             ;check the 9th and 10th bit to see if its ADDA or just ADD
-            MOVE.B  #8,D3       *Shift 8 bits to the left to isolate 
+                MOVE.B  #8,D3       *Shift 8 bits to the left to isolate 
             ;check the 9th and 10th bit to see if its ADDA or just ADD
-            LSL.W   D3,D2           *Move the bits
-            MOVE.B  #14,D3      *shift 14 bits to the right to pick out the 9th and 10th bits
-            LSR.W   D3,D2           *Move the bits            
-            CMP #%11,D2 ; if they are equal then we know that it is an ADDa
-            BEQ choseAdda
-            ;decode ADDX
-            BRA choseADDx
-choseAddA   BSR decodeADDA
-choseADDx   NOP            
-    RTS
+                LSL.W   D3,D2           *Move the bits
+                MOVE.B  #14,D3      *shift 14 bits to the right to pick out the 9th and 10th bits
+                LSR.W   D3,D2           *Move the bits            
+                CMP #%11,D2 ; if they are equal then we know that it is an ADDa
+                BEQ choseAdda
+                BSR decodeADDx
+                BRA choseADDx
+choseAddA       BSR decodeADDA
+choseADDx       NOP            
+                RTS
 ;ASd,LSd,ROd
-code1110       STOP        #$2700
-code1111       STOP        #$2700
- 
+code1110        STOP        #$2700
+code1111        STOP        #$2700
+
+
+;decode subrouting for MOVE.B and MOVEA.B
+decodeMOVEBMOVEA    NOP
+            ;write move
+                    MOVE.B  #77,(A6)+
+                    MOVE.B  #79,(A6)+
+                    MOVE.B  #86,(A6)+
+                    MOVE.B  #69,(A6)+
+            ;check if it is MOVEA
+                    CLR.L   D2
+                    MOVE.W  #example,D2
+                    MOVE.B  #7,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    CMP.W   D3,D2
+                    BNE     notMOVEAB
+                    MOVE.B  #65,(A6)+
+
+notMOVEAB           MOVE.B  #46,(A6)+
+                    MOVE.B  #66,(A6)+
+                    MOVE.B  #32,(A6)+            
+       
+            ;decode source
+                    CLR.L   D2
+                    MOVE.W  #example,D2
+                    MOVE.B  #10,D3
+                    LSL.W   D3,D2
+                    LSR.W   D3,D2
+                    MOVE.B  D2,D6
+                    BSR decodeModeAndAddress
+            ;check mode
+                    CMP.B   #0,D6
+                    BEQ MOVEBWasData
+                    MOVE.B  #44,(A6)+
+;flip the destination orginization of Xn and M so we can use our function
+                    CLR.L D2
+                    MOVE.W  #example,D2
+                    MOVE.B  #4,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    MOVE.W  D2,D6
+                    MOVE.W  #example,D2
+                    MOVE.B  #8,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    MOVE.B  #3,D3
+                    LSL.W   D3,D2
+                    OR.W    D2,D6
+                    BSR decodeModeAndAddress
+                    ;check mode
+                    CMP.B   #0,D6
+                    BEQ MOVEBWasData
+
+                    BRA MOVEBDone
+                    
+MOVEBWasData        LEA data,A6
+MOVEBDone           MOVE.B  #0,(A6)+
+                    MOVE.L  #14,D0
+                    LEA inst,A1
+                    TRAP    #15               
+                    RTS
+                    
+                    
+;decode subroutine for ADDx.... 
+decodeADDx  NOP
+    CLR.L   D2
+    MOVE.W  #example,D2
+    ;Decode the size
+    MOVE.B  #8,D3
+    LSL.W   D3,D2
+    MOVE.B  #14,D3
+    LSR.W   D3,D2
+    MOVE.W  D2,D3
+    ;check if decoded valid size
+            SUB.B   #%10,D2
+            BGT     ADDwasData
+            ;write the .x to the instruction depending on size
+            MOVE.B  #46,(A6)+
+            MOVE.B  D3,D2
+            BSR addlpsize ; jump to the sub routine that will add the .x to the isntruction
+     ;assuming we decoded a valid size we need to check if the addressing mode is also valid for the given size
+            
+     ;check which direction we are moving the data 
+            MOVE.W  #example,D2
+            MOVE.B  #7,D3
+            LSL.W   D3,D2
+            MOVE.B  #15,D3
+            LSR.W   D3,D2
+            BEQ     addeatodn
+            
+            
+            BRA AddeaDone
+Addeatodn   MOVE.W  #example,D2
+            MOVE.B  #12,D3
+            LSL.W   D3,D2
+            MOVE.B  #12,D3
+            LSR.W   D3,D2
+            MOVE.B  D2,D6
+            BSR decodeModeAndAddress
+            ;check mode
+            CMP.B   #0,D6
+            BEQ ADDwasData
+            MOVE.B  #44,(A6)+ ;add comma
+            ;decode Dn and add it to the isntruction
+            MOVE.W  #example,D2
+            MOVE.B  #4,D3
+            LSL.W   D3,D2
+            MOVE.B  #13,D3
+            LSR.W   D3,D2
+            MOVE.B  #68,(A6)+
+            ADD.B   #48,D2
+            MOVE.B  D2,(A6)+
+            
+AddeaDone   NOP
+
+            BRA Adddone
+ADDwasData  LEA data,A6
+AddDone     MOVE.B  #0,(A6)+
+            MOVE.L  #14,D0
+            LEA inst,A1
+            TRAP    #15           
+            RTS
+    
 ;Decode subroutine for ADDA
 decodeADDA  MOVE.B  #65,(A6)+
     CLR.L   D2
@@ -128,10 +254,13 @@ decodeADDA  MOVE.B  #65,(A6)+
     LSR.W   D3,D2
     MOVE.B  D2,D6
     BSR decodeModeAndAddress
+    ;check mode
+    CMP.B   #0,D6
+    BEQ addAwasData
     MOVE.B  #44,(A6)+ ;add comma
     ;check mode
     CMP.B   #0,D6
-    BEQ addwasData    
+    BEQ addAwasData    
     ;Decode the destination address register 
     MOVE.W  #example,D2
     MOVE.B  #4,D3
@@ -143,9 +272,9 @@ decodeADDA  MOVE.B  #65,(A6)+
     MOVE.B  D2,(A6)+
    
     
-    BRA adddone
-addwasData  LEA data,A6
-adddone     MOVE.B  #0,(A6)+
+    BRA addAdone
+addAwasData  LEA data,A6
+addAdone     MOVE.B  #0,(A6)+
             MOVE.L  #14,D0
             LEA inst,A1
             TRAP    #15           
@@ -367,7 +496,13 @@ mode000
     MOVE.B  #1,D6
     RTS
 ;address register
-mode001 STOP        #$2700
+mode001
+    AND.B   #%00000111,D6
+    MOVE.B  #65,(A6)+
+    ADD.B   #48,D6
+    MOVE.B  D6,(A6)+
+    MOVE.B  #1,D6
+    RTS
 ; address (An)
 mode010 STOP        #$2700
 ; Address with postincrement (An)+
@@ -445,6 +580,7 @@ DR      DC.B    'DR',0
 AR      DC.B    'AR',0
 data    DC.B    'DATA',0
                END   $400 
+
 
 
 
