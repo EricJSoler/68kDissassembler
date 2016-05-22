@@ -3,7 +3,7 @@
 stack            EQU      $A000
 inst             EQU      $5000
 operand          EQU      $6000
-example          EQU      %0001000000000001    
+example          EQU      %1100010111010000
 nextword         EQU      1 
 shift            EQU     12                   * Shift 12 bits 
  
@@ -70,7 +70,7 @@ code0100        CLR.L   D2              *Zero it
                 MULU    #6,D2       *index into the table
                 LEA     jmp_table0100,A0
                 JSR     0(A0,D2)
-                RTS
+                JMP finishedoneinst
 code0101        STOP        #$2700
 ;Bcc
 code0110        STOP        #$2700
@@ -83,7 +83,8 @@ code1010        STOP        #$2700
 ;EOR,CMP
 code1011        BRA        code1011
 ;MULS
-code1100        STOP        #$2700
+code1100        BSR decodeMULS
+                JMP finishedoneinst
 ;ADD,ADDX,ADDA
 code1101    
                 MOVE.B  #65,(A6)+
@@ -108,6 +109,65 @@ choseADDx       NOP
 code1110        STOP        #$2700
 code1111        STOP        #$2700
 
+
+;decode subroutine for MULS it must be muls.w
+decodeMULS          NOP
+                    ;check if the hardcoded bits from the instrsuction are set correctly
+                    CLR.L   D2
+                    MOVE.W  #example,D2
+                    MOVE.B  #7,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    CMP.B   #%111,D2
+                    BNE     mulswasdata
+                    ;check to make sure we arent usnig An addressing mode because thats the only invalid one for the soource
+                    MOVE.W  #example,D2
+                    MOVE.B  #10,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    CMP.B   #%001,D2    ;check the addressing mode
+                    BEQ     mulswasdata
+                    
+                    ;spell out instruction in memory
+                    MOVE.B  #77,(A6)+
+                    MOVE.B  #85,(A6)+
+                    MOVE.B  #76,(A6)+
+                    MOVE.B  #83,(A6)+
+                    MOVE.B  #46,(A6)+
+                    MOVE.B  #87,(A6)+
+                    MOVE.B  #32,(A6)+
+
+                    ;decode source address and mode
+                    MOVE.W  #example,D2                    
+                    MOVE.B  #10,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #10,D3
+                    LSR.W   D3,D2
+                    MOVE.B  D2,D6
+                    BSR decodeModeAndAddress
+                    CMP.B   #0,D6
+                    BEQ mulswasdata
+                    ;write destination data register to memory
+                    MOVE.W #example,D2
+                    MOVE.B  #4,D3
+                    LSL.W   D3,D2
+                    MOVE.B  #13,D3
+                    LSR.W   D3,D2
+                    MOVE.B  #44,(A6)+
+                    MOVE.B  #68,(A6)+
+                    ADD.B   #48,D2
+                    MOVE.B  D2,(A6)+
+                    
+                    BRA mulsdone
+
+mulswasdata         LEA data,A6
+mulsdone            MOVE.B  #0,(A6)+
+                    MOVE.L  #14,D0
+                    LEA inst,A1
+                    TRAP    #15               
+                    RTS
 
 ;decode subrouting for MOVE.B and MOVEA.B
 decodeMOVEBMOVEA    NOP
@@ -152,7 +212,7 @@ notMOVEAB           MOVE.B  #46,(A6)+
                     LSR.W   D3,D2
                     MOVE.W  D2,D6
                     MOVE.W  #example,D2
-                    MOVE.B  #8,D3
+                    MOVE.B  #7,D3
                     LSL.W   D3,D2
                     MOVE.B  #13,D3
                     LSR.W   D3,D2
@@ -456,26 +516,6 @@ code11011110       STOP        #$2700
 code11011111       STOP        #$2700
 
 
-;Light Purple Size Decoding Will Load D4 with the ascii number for the size
-;jmp_tableLpSize  JMP         codexxxxxxxx00
-;               JMP         codexxxxxxxx01
-;               JMP         codexxxxxxxx10
-;               JMP         codexxxxxxxx11                
-;SIZE ROUTINES
-; .B
-;codexxxxxxxx00  MOVE.L  #%00,D4
-;    RTS
-; .W
-;codexxxxxxxx01  MOVE.L  #%01,D4
-;    RTS
-; .L
-;codexxxxxxxx10 MOVE.L  #%10,D4
-;    RTS
-; INVALID SIZE this must be data
-;codexxxxxxxx11  MOVE.L  #%11,D4
-;    RTS
-
-
 ;Mode Decoding expects to be indexed into from decodeModeAndAddress subroutine and D6 = to the (mode)(xn)
 jmp_tableMode  JMP         mode000
                JMP         mode001
@@ -503,11 +543,40 @@ mode001
     MOVE.B  #1,D6
     RTS
 ; address (An)
-mode010 STOP        #$2700
+mode010
+    AND.B   #%00000111,D6
+    MOVE.B  #40,(A6)+
+    MOVE.B  #65,(A6)+
+    ADD.B   #48,D6
+    MOVE.B  D6,(A6)+
+    MOVE.B  #41,(A6)+
+    MOVE.B  #1,D6
+    RTS
+
 ; Address with postincrement (An)+
-mode011 STOP        #$2700
+mode011 
+    AND.B   #%00000111,D6
+    MOVE.B  #40,(A6)+
+    MOVE.B  #65,(A6)+
+    ADD.B   #48,D6
+    MOVE.B  D6,(A6)+
+    MOVE.B  #41,(A6)+
+    MOVE.B  #43,(A6)+
+    MOVE.B  #1,D6
+    RTS
+
 ;Address with predecrement -(An)
-mode100 STOP        #$2700
+mode100
+    AND.B   #%00000111,D6
+    MOVE.B  #45,(A6)+
+    MOVE.B  #40,(A6)+
+    MOVE.B  #65,(A6)+
+    ADD.B   #48,D6
+    MOVE.B  D6,(A6)+
+    MOVE.B  #41,(A6)+
+    MOVE.B  #1,D6
+    
+    RTS
 ;Address with displaceemnt (d16,An)
 mode101 STOP        #$2700
 ;Address with index (d8,An,Xn)
@@ -579,6 +648,7 @@ DR      DC.B    'DR',0
 AR      DC.B    'AR',0
 data    DC.B    'DATA',0
                END   $400 
+
 
 
 
